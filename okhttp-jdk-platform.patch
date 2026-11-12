@@ -1,0 +1,86 @@
+--- a/okhttp/src/main/kotlin/okhttp3/internal/platform/Platform.kt
++++ b/okhttp/src/main/kotlin/okhttp3/internal/platform/Platform.kt
+@@ -21,7 +21,6 @@
+ import java.net.Socket
+ import java.security.GeneralSecurityException
+ import java.security.KeyStore
+-import java.security.Security
+ import java.util.logging.Level
+ import java.util.logging.Logger
+ import javax.net.ssl.SSLContext
+@@ -32,7 +31,6 @@
+ import javax.net.ssl.X509TrustManager
+ import okhttp3.OkHttpClient
+ import okhttp3.Protocol
+-import okhttp3.internal.platform.android.AndroidLog
+ import okhttp3.internal.readFieldOrNull
+ import okhttp3.internal.tls.BasicCertificateChainCleaner
+ import okhttp3.internal.tls.BasicTrustRootIndex
+@@ -192,66 +190,10 @@
+     fun alpnProtocolNames(protocols: List<Protocol>) =
+         protocols.filter { it != Protocol.HTTP_1_0 }.map { it.toString() }
+ 
+-    // This explicit check avoids activating in Android Studio with Android specific classes
+-    // available when running plugins inside the IDE.
+-    val isAndroid: Boolean
+-        get() = "Dalvik" == System.getProperty("java.vm.name")
+-
+-    private val isConscryptPreferred: Boolean
+-      get() {
+-        val preferredProvider = Security.getProviders()[0].name
+-        return "Conscrypt" == preferredProvider
+-      }
+-
+-    private val isOpenJSSEPreferred: Boolean
+-      get() {
+-        val preferredProvider = Security.getProviders()[0].name
+-        return "OpenJSSE" == preferredProvider
+-      }
+-
+-    private val isBouncyCastlePreferred: Boolean
+-      get() {
+-        val preferredProvider = Security.getProviders()[0].name
+-        return "BC" == preferredProvider
+-      }
+-
+     /** Attempt to match the host runtime to a capable Platform implementation. */
+-    private fun findPlatform(): Platform = if (isAndroid) {
+-      findAndroidPlatform()
+-    } else {
+-      findJvmPlatform()
+-    }
+-
+-    private fun findAndroidPlatform(): Platform {
+-      AndroidLog.enable()
+-      return Android10Platform.buildIfSupported() ?: AndroidPlatform.buildIfSupported()!!
+-    }
++    private fun findPlatform(): Platform = findJvmPlatform()
+ 
+     private fun findJvmPlatform(): Platform {
+-      if (isConscryptPreferred) {
+-        val conscrypt = ConscryptPlatform.buildIfSupported()
+-
+-        if (conscrypt != null) {
+-          return conscrypt
+-        }
+-      }
+-
+-      if (isBouncyCastlePreferred) {
+-        val bc = BouncyCastlePlatform.buildIfSupported()
+-
+-        if (bc != null) {
+-          return bc
+-        }
+-      }
+-
+-      if (isOpenJSSEPreferred) {
+-        val openJSSE = OpenJSSEPlatform.buildIfSupported()
+-
+-        if (openJSSE != null) {
+-          return openJSSE
+-        }
+-      }
+-
+       // An Oracle JDK 9 like OpenJDK, or JDK 8 251+.
+       val jdk9 = Jdk9Platform.buildIfSupported()
+ 
